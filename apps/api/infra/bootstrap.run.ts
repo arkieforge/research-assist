@@ -29,6 +29,8 @@ const PROJECT = "arkie";
 /** What the app stack and CI need from Cloudflare, and nothing more. Names are Cloudflare's permission groups. */
 const DEPLOY_PERMISSIONS = [
 	"Workers Scripts Write",
+	// Alchemy's Cloudflare state store keeps its auth token in Secrets Store.
+	"Secrets Store Write",
 	"Workers KV Storage Write",
 	"Workers R2 Storage Write",
 	"D1 Write",

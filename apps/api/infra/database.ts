@@ -17,7 +17,11 @@ export const Database = Effect.gen(function* () {
 	const { stage } = yield* Alchemy.Stack;
 	if ((yield* AlchemyContext).dev) return yield* LocalPostgres(DEV_PG_PORT, "./migrations/neon");
 	const project = isProdStage(stage)
-		? yield* Neon.Project("Database", { region: "aws-ap-southeast-1" }).pipe(RemovalPolicy.retain())
+		? yield* Neon.Project("Database", {
+				region: "aws-ap-southeast-1",
+				// Neon's free plan caps point-in-time history at 6 hours (Alchemy defaults to 24). Raise on a paid plan.
+				historyRetentionSeconds: 21_600,
+			}).pipe(RemovalPolicy.retain())
 		: yield* Neon.Project.ref("Database", { stage: "prod" });
 	const branch = yield* Neon.Branch("Branch", {
 		project,
