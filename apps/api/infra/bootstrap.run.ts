@@ -8,7 +8,7 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
 import { optional } from "./config.ts";
-import { DopplerProviders, DopplerSecret, DopplerServiceToken } from "./doppler.ts";
+import { DopplerProviders, DopplerSecret, DopplerServiceToken, dopplerSecrets } from "./doppler.ts";
 import { VercelEnv, VercelProject, VercelProviders } from "./vercel.ts";
 
 // The bootstrap stack: account-level setup the app stack (alchemy.run.ts) and CI depend on, as code.
@@ -18,7 +18,7 @@ import { VercelEnv, VercelProject, VercelProviders } from "./vercel.ts";
 //   Doppler     CLOUDFLARE_ACCOUNT_ID in arkie/stg and arkie/prd; read-only service tokens for CI
 //   GitHub      production/preview/preview-cleanup environments holding those tokens, the labels the
 //               templates and workflows use, and the main-branch ruleset
-//   Vercel      the arkie-web and arkie-marketing projects and web's production env (when VERCEL_TOKEN is set)
+//   Vercel      the arkie-web and arkie-marketing projects, web's production and preview env (when VERCEL_TOKEN is set)
 //
 // Contributors never run this; it only turns admin credentials into the narrow ones everyone else uses.
 
@@ -59,8 +59,8 @@ const LABELS: Array<{ name: string; color: string; description: string }> = [
 	{ name: "area:infra", color: "0e8a16", description: "Alchemy stacks, CI/CD, Doppler, dev tooling." },
 ];
 
-/** Web's production env vars, read from Doppler arkie/prd. Missing ones are skipped. */
-const WEB_PRODUCTION_ENV = [
+/** Web's env vars: Production reads them from Doppler arkie/prd, Preview from arkie/stg. Missing ones are skipped. */
+const WEB_ENV = [
 	["VITE_CLERK_PUBLISHABLE_KEY", false],
 	["CLERK_PUBLISHABLE_KEY", false],
 	["CLERK_SECRET_KEY", true],
@@ -73,8 +73,8 @@ export default Alchemy.Stack(
 	{
 		providers: Layer.mergeAll(Cloudflare.providers(), GitHub.providers(), DopplerProviders(), VercelProviders()),
 		state: Cloudflare.state(),
-		// Doppler prd supplies the Cloudflare credentials (state store) and web's production env;
-		// the admin's shell supplies DOPPLER_ADMIN_TOKEN, GITHUB_TOKEN and VERCEL_TOKEN.
+		// Doppler prd supplies the Cloudflare credentials (state store) and VERCEL_TOKEN; web's env is read
+		// per config with DOPPLER_ADMIN_TOKEN. The admin's shell supplies that token and GITHUB_TOKEN.
 		secrets: [Alchemy.Secrets.ProcessEnv(), Doppler.Secrets({ project: PROJECT, config: "prd" })],
 	},
 	Effect.gen(function* () {
@@ -190,18 +190,23 @@ export default Alchemy.Stack(
 				framework: "astro",
 				repo,
 			}).pipe(RemovalPolicy.retain());
-			for (const [key, secret] of WEB_PRODUCTION_ENV) {
-				const own = yield* optional(key);
-				// The browser bundle reads the publishable key as VITE_; Doppler may hold it only unprefixed.
-				const value =
-					key === "VITE_CLERK_PUBLISHABLE_KEY" && Option.isNone(own) ? yield* optional("CLERK_PUBLISHABLE_KEY") : own;
-				if (Option.isNone(value)) continue;
-				yield* VercelEnv(`WebEnv-${key}`, {
-					project: "arkie-web",
-					key,
-					value: secret ? Redacted.make(value.value) : value.value,
-					target: ["production"],
-				});
+			const sources = {
+				production: yield* dopplerSecrets(PROJECT, "prd").pipe(Effect.orDie),
+				preview: yield* dopplerSecrets(PROJECT, "stg").pipe(Effect.orDie),
+			};
+			for (const target of ["production", "preview"] as const) {
+				const source = sources[target];
+				for (const [key, secret] of WEB_ENV) {
+					// The browser bundle reads the publishable key as VITE_; Doppler may hold it only unprefixed.
+					const value = source[key] || (key === "VITE_CLERK_PUBLISHABLE_KEY" ? source.CLERK_PUBLISHABLE_KEY : "");
+					if (!value) continue;
+					yield* VercelEnv(target === "production" ? `WebEnv-${key}` : `WebPreviewEnv-${key}`, {
+						project: "arkie-web",
+						key,
+						value: secret ? Redacted.make(value) : value,
+						target: [target],
+					});
+				}
 			}
 		}
 

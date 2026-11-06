@@ -81,6 +81,13 @@ export default Alchemy.Stack(
 				value: api.url.as<string>(),
 				target: ["production"],
 			});
+			// Previews without an API of their own (no preview:api label) use prod's; a PR's branch value wins.
+			yield* VercelEnv("WebApiUrlPreview", {
+				project: "arkie-web",
+				key: "VITE_API_URL",
+				value: api.url.as<string>(),
+				target: ["preview"],
+			});
 		}
 		if (Option.isSome(vercel) && isPreviewStage(stage) && Option.isSome(branch)) {
 			yield* VercelEnv("WebApiUrl", {

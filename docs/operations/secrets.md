@@ -20,14 +20,14 @@ Alchemy reads Doppler for every non-dev stage, ranked above the shell, so a stra
 | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`       |          |    ✓     |    ✓     | bootstrap (scoped deploy token, Souhardo02's account)                                 |
 | `NEON_API_KEY`                                        |          |    ✓     |    ✓     | Neon console > API keys                                                               |
 | `CLERK_SECRET_KEY`                                    |    ✓     |    ✓     |    ✓     | Clerk > API keys (development instance until production has a domain)                 |
-| `VITE_CLERK_PUBLISHABLE_KEY`, `CLERK_PUBLISHABLE_KEY` |    ✓     |          |    ✓     | Clerk; `prd` copies go to Vercel through bootstrap                                    |
+| `VITE_CLERK_PUBLISHABLE_KEY`, `CLERK_PUBLISHABLE_KEY` |    ✓     |          |    ✓     | Clerk; bootstrap copies `prd` and `stg` to Vercel                                     |
 | `ARKIE_ANTHROPIC_API_KEY`                             | optional | optional | optional | never name it `ANTHROPIC_API_KEY`; without it the chat uses the scripted Replay model |
 | `VERCEL_TOKEN`, `VERCEL_TEAM_ID`                      |          | optional | optional | lets deploys point Vercel's `VITE_API_URL` at the stage's API                         |
 | `T3_MCP_URL`, `T3_MCP_TOKEN`                          | optional | optional | optional | both or neither                                                                       |
 | `T3_ALLOWED_USER_IDS`                                 | optional | optional | optional | comma-separated Clerk ids allowed to use T3 tools; empty means nobody                 |
 | `AXIOM_TOKEN`, `AXIOM_ORG_ID`                         |          |          | optional | turns on prod's Axiom export (and the incident.io monitor)                            |
 | `INCIDENT_IO_ALERT_URL`, `INCIDENT_IO_TOKEN`          |          |          | optional | incident.io > Alerts > Sources > HTTP                                                 |
-| `VITE_POSTHOG_KEY`, `VITE_POSTHOG_HOST`               | optional |          | optional | `prd` copies go to Vercel through bootstrap                                           |
+| `VITE_POSTHOG_KEY`, `VITE_POSTHOG_HOST`               | optional |          | optional | bootstrap copies `prd` and `stg` to Vercel                                            |
 
 Never in Doppler: `DOPPLER_TOKEN` (each GitHub environment holds its own read-only service token, made by bootstrap) and `DOPPLER_ADMIN_TOKEN` (the admin's own CLI token, read at bootstrap time).
 
@@ -35,14 +35,7 @@ When you add a secret: put it in every config that needs it, add it to `.env.exa
 
 ## Vercel
 
-Install Doppler's Vercel integration and sync:
-
-| Doppler config | Vercel project | Vercel environment |
-| -------------- | -------------- | ------------------ |
-| `prd`          | `arkie-web`    | Production         |
-| `stg`          | `arkie-web`    | Preview            |
-
-`arkie-web` needs `VITE_API_URL`, `VITE_CLERK_PUBLISHABLE_KEY`, `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `VITE_POSTHOG_KEY`, `VITE_POSTHOG_HOST`. `arkie-marketing` needs only `PUBLIC_APP_URL` and `SITE_URL`; set those in Vercel directly.
+Bootstrap copies `arkie-web`'s Clerk and PostHog vars from `prd` to Production and from `stg` to Preview; rerun it after changing one. The API stack sets `VITE_API_URL` (prod's API for Production and every Preview, a `pr-<n>` API for its own branch). Bootstrap also sets `arkie-marketing`'s `PUBLIC_APP_URL` and `SITE_URL`. No Doppler Vercel integration.
 
 ## Rules
 

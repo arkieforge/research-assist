@@ -14,6 +14,13 @@ const API = "https://api.doppler.com/v3";
 const doppler = <T>(method: "GET" | "POST" | "DELETE", path: string, body?: unknown) =>
 	request<T>("Doppler", "DOPPLER_ADMIN_TOKEN", method, `${API}${path}`, body);
 
+/** Every secret in one config, as name → value. For values a stack needs from a config other than its own. */
+export const dopplerSecrets = (project: string, config: string) =>
+	doppler<Record<string, string>>(
+		"GET",
+		`/configs/config/secrets/download?project=${project}&config=${config}&format=json&include_dynamic_secrets=false`,
+	);
+
 /** One secret in one Doppler config. Destroying the resource removes the secret. */
 export type DopplerSecret = Resource<
 	"Arkie.DopplerSecret",
