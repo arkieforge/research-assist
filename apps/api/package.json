@@ -11,6 +11,7 @@
 	},
 	"scripts": {
 		"dev": "alchemy dev --stage $(../../scripts/stage.sh dev)",
+		"eval:render-html": "node --env-file-if-exists=../../.env evals/render-html/run.ts",
 		"dev:destroy": "alchemy destroy --stage $(../../scripts/stage.sh dev)",
 		"deploy": "alchemy deploy --stage $(../../scripts/stage.sh live)",
 		"destroy": "alchemy destroy --stage $(../../scripts/stage.sh live)",

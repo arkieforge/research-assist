@@ -1,0 +1,42 @@
+name: Agent context
+
+# Fails when a PR grows the text every agent session loads (AGENTS.md, CLAUDE.md, repo skills, the
+# triage playbook) compared to its base. Cut the added text, or have a maintainer add the
+# agent-context-increase label when the growth is worth it. Reads only git objects; no PR code runs.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-context-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  budget:
+    name: Agent context budget
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Compare with the base branch
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          ALLOW: ${{ contains(github.event.pull_request.labels.*.name, 'agent-context-increase') }}
+        run: |
+          size() {
+            git ls-tree -r --name-only "$1" -- AGENTS.md CLAUDE.md .agents/skills .github/triage/PLAYBOOK.md \
+              | grep -E '(^|/)(AGENTS|CLAUDE|SKILL|PLAYBOOK)\.md$' \
+              | while read -r f; do git cat-file -s "$1:$f"; done \
+              | awk '{ s += $1 } END { print s + 0 }'
+          }
+          base=$(size "$BASE"); head=$(size HEAD)
+          echo "Agent context: $base -> $head bytes"
+          if [ "$head" -le "$base" ]; then exit 0; fi
+          if [ "$ALLOW" = "true" ]; then echo "Growth of $((head - base)) bytes accepted by the agent-context-increase label."; exit 0; fi
+          echo "::error file=AGENTS.md::Agent context grew by $((head - base)) bytes. Cut the added text, or ask a maintainer for the agent-context-increase label."
+          exit 1

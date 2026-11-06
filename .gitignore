@@ -15,3 +15,6 @@ dist/
 .astro/
 .t3/
 .repos/
+
+# Eval run output (apps/api/evals/*/README.md)
+apps/api/runs/

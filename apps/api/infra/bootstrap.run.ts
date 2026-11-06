@@ -57,6 +57,11 @@ const LABELS: Array<{ name: string; color: string; description: string }> = [
 	{ name: "area:web", color: "0e8a16", description: "apps/web (TanStack Start on Vercel)." },
 	{ name: "area:marketing", color: "0e8a16", description: "apps/marketing (Astro on Vercel)." },
 	{ name: "area:infra", color: "0e8a16", description: "Alchemy stacks, CI/CD, Doppler, dev tooling." },
+	{
+		name: "agent-context-increase",
+		color: "d4c5f9",
+		description: "Accepts growth in AGENTS.md, skills or the triage playbook (Agent context check).",
+	},
 ];
 
 /** Web's env vars: Production reads them from Doppler arkie/prd, Preview from arkie/stg. Missing ones are skipped. */
