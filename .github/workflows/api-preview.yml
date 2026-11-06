@@ -67,7 +67,7 @@ jobs:
               "",
               `${process.env.URL || "(URL not found in the deploy log)"} for ${process.env.SHA.slice(0, 7)}`,
               "",
-              "Point a web preview at it by setting `VITE_API_URL` on that Vercel deployment. Removing the",
+              "This branch's next Vercel web preview uses it (`VITE_API_URL` is set per branch). Removing the",
               "`preview:api` label or closing the PR tears the stage down.",
             ].join("\n");
             const { owner, repo } = context.repo;
