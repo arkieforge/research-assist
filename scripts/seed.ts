@@ -40,8 +40,8 @@ const clerk = async <T>(path: string, body?: unknown): Promise<T> => {
 	return res.json() as Promise<T>;
 };
 
-/** A fresh session token for the seed user (created on first use). They live about a minute. */
-async function seedToken(): Promise<{ userId: string; token: () => Promise<string> }> {
+/** A session for the seed user (created on first use) and fresh tokens from it; they live about a minute. */
+async function seedSession(): Promise<{ userId: string; token: () => Promise<string>; end: () => Promise<unknown> }> {
 	const found = await clerk<Array<{ id: string }>>(`/users?email_address=${encodeURIComponent(SEED_EMAIL)}`);
 	const userId =
 		found[0]?.id ??
@@ -53,7 +53,11 @@ async function seedToken(): Promise<{ userId: string; token: () => Promise<strin
 			})
 		).id;
 	const session = await clerk<{ id: string }>("/sessions", { user_id: userId });
-	return { userId, token: async () => (await clerk<{ jwt: string }>(`/sessions/${session.id}/tokens`, {})).jwt };
+	return {
+		userId,
+		token: async () => (await clerk<{ jwt: string }>(`/sessions/${session.id}/tokens`, {})).jwt,
+		end: () => clerk(`/sessions/${session.id}/revoke`, {}),
+	};
 }
 
 /** Sends one user message over the chat's WebSocket and resolves when the agent's reply is done. */
@@ -90,7 +94,7 @@ function sendTurn(name: string, token: string, text: string): Promise<void> {
 	});
 }
 
-const { userId, token } = await seedToken();
+const { userId, token, end } = await seedSession();
 for (const text of PROMPTS) {
 	await sendTurn(chatName(userId, crypto.randomUUID()), await token(), text).catch((error: Error) =>
 		fail(error.message),
@@ -105,6 +109,8 @@ for (let attempt = 0; attempt < 10 && listed < PROMPTS.length; attempt++) {
 	const res = await fetch(`${api}/chats`, { headers: { Authorization: `Bearer ${await token()}` } });
 	listed = res.ok ? ((await res.json()) as unknown[]).length : 0;
 }
+// Each run makes a session; don't leave it active.
+await end();
 if (listed < PROMPTS.length)
 	fail(`GET /chats lists ${listed} chats after seeding ${PROMPTS.length}; check .t3/logs/api.log.`);
 process.stdout.write(`[seed] done: ${listed} chats for ${SEED_EMAIL} (${userId}). Sign in with code 424242.\n`);
