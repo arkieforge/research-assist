@@ -9,7 +9,7 @@
 | `production`, `preview`, `preview-cleanup` environments, each with its `DOPPLER_TOKEN` | GitHub `arkieforge/research-assist`           |
 | Every label the templates and workflows use                                            | GitHub                                        |
 | The `main` ruleset (PRs only, squash, `CI` must pass, no force-push), opt-in           | GitHub                                        |
-| `arkie-web` and `arkie-marketing` projects, web's production env from Doppler `prd`    | Vercel, when `VERCEL_TOKEN` is set            |
+| `arkie-web` and `arkie-marketing` projects, web's env from Doppler `prd` and `stg`     | Vercel, when `VERCEL_TOKEN` is set            |
 | A scoped Cloudflare deploy token replacing the hand-made one, opt-in                   | Souhardo02's Cloudflare account, then Doppler |
 
 Rerunning is safe: unchanged resources are left alone, tokens are never re-minted, and Vercel projects are retained even if removed from the code.

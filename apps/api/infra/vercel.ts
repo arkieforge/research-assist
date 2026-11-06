@@ -46,7 +46,14 @@ const ProjectProvider = () =>
 	Provider.succeed(VercelProject, {
 		reconcile: ({ news }) =>
 			Effect.gen(function* () {
-				const settings = { framework: news.framework, rootDirectory: news.rootDirectory };
+				const settings = {
+					framework: news.framework,
+					rootDirectory: news.rootDirectory,
+					// Build only when this app or its workspace deps changed.
+					enableAffectedProjectsDeployments: true,
+					// Fork PRs build only after a member approves: previews run with real env (and prod's API).
+					gitForkProtection: true,
+				};
 				const existing = yield* vercel<{ id: string; name: string }>("GET", `/v9/projects/${news.name}`).pipe(
 					Effect.catchTag("ApiError", (e) => (e.status === 404 ? Effect.succeed(undefined) : Effect.fail(e))),
 				);

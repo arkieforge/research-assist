@@ -33,7 +33,7 @@ Label a same-repo PR `preview:api`. The **API preview** workflow waits for appro
 
 The `preview` and `preview-cleanup` environments hold a Doppler `stg` service token as `DOPPLER_TOKEN` (bootstrap sets them). Prod must be deployed once before the first preview (previews branch its Neon project).
 
-Vercel builds its own web preview for every PR. With `VERCEL_TOKEN` in Doppler `stg`, the `pr-<n>` deploy sets `VITE_API_URL` for that PR's branch, so the web preview after the next push talks to the PR's own API.
+Vercel builds its own web preview for every PR, with Doppler `stg`'s web env (bootstrap) and prod's API. With `VERCEL_TOKEN` in Doppler `stg`, the `pr-<n>` deploy sets `VITE_API_URL` for that PR's branch, so the web preview after the next push talks to the PR's own API instead.
 
 ## Vercel projects
 
@@ -44,7 +44,7 @@ Bootstrap creates both (with `VERCEL_TOKEN`); otherwise import the repo twice by
 | `arkie-web`       | `apps/web`       | Other (Nitro writes Vercel's output itself) |
 | `arkie-marketing` | `apps/marketing` | Astro                                       |
 
-Turn on "Skip deployments when there are no changes to the root directory or its dependencies" in both. Environment variables come from Doppler's Vercel integration (see [secrets.md](./secrets.md)).
+Bootstrap also turns on skipping unaffected builds and fork protection. Environment variables: see [secrets.md](./secrets.md#vercel).
 
 ## Rollback
 
