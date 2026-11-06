@@ -1,0 +1,53 @@
+name: Triage report
+description: Filed by an agent following .github/triage/PLAYBOOK.md. Hand-written reports use the bug report.
+labels: [via-triage]
+body:
+  - type: markdown
+    attributes:
+      value: One problem per issue. Redact tokens, secrets, emails and user ids from everything pasted.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: The problem as the reporter described it.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnosis
+    attributes:
+      label: Diagnosis
+      description: What the investigation found, grounded in logs, traces and source (file:line at a commit).
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Commit and stage
+      description: The deployed commit the bug happened on and the stage (prod, pr-42, local), or unknown.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: The few most relevant log lines, trace ids or Axiom queries. Redacted.
+      render: shell
+  - type: input
+    id: related
+    attributes:
+      label: Related issues
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Mitigation or workaround applied
+  - type: input
+    id: agent
+    attributes:
+      label: Filed by
+      description: Agent and model that produced this report.

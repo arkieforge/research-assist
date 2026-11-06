@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.alchemy/
+.tanstack/
+.wrangler/
+.output/
+.env
+.env.*
+!.env.example
+.DS_Store
+*.local
+.claude/settings.local.json
+.vercel/
+.nitro/
+.astro/
+.t3/
+.repos/

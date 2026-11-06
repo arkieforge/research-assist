@@ -1,0 +1,56 @@
+name: Deploy API
+
+# main -> Alchemy stage `prod`. Every secret, cloud credentials included, comes from Doppler `prd`
+# through the stack's secrets list; the job holds only DOPPLER_TOKEN, in the `production` environment.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Redeploy every resource, including ones with no detected changes.
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: api-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy prod
+    # A manual run from another branch would deploy that branch to production.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+    env:
+      ALCHEMY_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+        with:
+          filter: "@arkie/api..."
+      - name: alchemy deploy --stage prod
+        working-directory: apps/api
+        run: vp exec alchemy deploy --stage prod --yes --no-input ${{ inputs.force && '--force' || '' }}
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+      - name: Commit status
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: "success",
+              context: "API deploy / prod",
+              description: "API prod deploy completed.",
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });

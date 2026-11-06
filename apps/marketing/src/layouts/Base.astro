@@ -1,0 +1,30 @@
+---
+// Placeholder layout until the marketing design is approved (mock first, see AGENTS.md).
+interface Props {
+	title: string;
+	description: string;
+}
+const { title, description } = Astro.props;
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="description" content={description} />
+		<meta name="theme-color" content="#000" />
+		<link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+		<title>{title}</title>
+		<style is:global>
+			:root {
+				color-scheme: dark;
+				background: #000;
+				color: #fff;
+				font-family: ui-sans-serif, system-ui, sans-serif;
+			}
+		</style>
+	</head>
+	<body>
+		<slot />
+	</body>
+</html>

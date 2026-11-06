@@ -1,0 +1,11 @@
+# Keeps the SHA-pinned actions current; npm updates stay manual (the Alchemy and Effect betas move
+# together and need a human).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directories: ["/", "/.github/actions/*"]
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

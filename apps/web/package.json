@@ -1,0 +1,39 @@
+{
+	"name": "@arkie/web",
+	"private": true,
+	"type": "module",
+	"imports": {
+		"#/*": "./src/*"
+	},
+	"scripts": {
+		"dev": "vp dev --port ${WEB_PORT:-3000} --strictPort",
+		"build": "vp build",
+		"typecheck": "tsr generate && tsc --noEmit"
+	},
+	"dependencies": {
+		"@ai-sdk/react": "^4.0.167",
+		"@arkie/api": "workspace:*",
+		"@clerk/tanstack-react-start": "^1.7.11",
+		"@cloudflare/ai-chat": "^0.12.2",
+		"@tanstack/react-router": "^1.170.46",
+		"@tanstack/react-start": "^1.169.4",
+		"agents": "^0.33.0",
+		"ai": "^7.0.163",
+		"posthog-js": "^1.447.2",
+		"react": "^19.2.0",
+		"react-dom": "^19.2.0"
+	},
+	"devDependencies": {
+		"@tailwindcss/vite": "^4.3.4",
+		"@tanstack/router-cli": "^1.167.46",
+		"@types/node": "^24.0.0",
+		"@types/react": "^19.2.0",
+		"@types/react-dom": "^19.2.0",
+		"@vitejs/plugin-react": "^6.2.1",
+		"nitro": "3.0.261103-rc",
+		"tailwindcss": "^4.3.4",
+		"typescript": "^7.0.2",
+		"vite": "catalog:",
+		"vite-plus": "catalog:"
+	}
+}

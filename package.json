@@ -1,0 +1,36 @@
+{
+	"name": "arkie",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "node scripts/dev.ts",
+		"setup": "node scripts/setup-worktree.ts",
+		"doctor": "node scripts/doctor.ts",
+		"triage": "node scripts/triage.ts",
+		"check": "vp check && vp run -r typecheck && vp run -r test && vp run -r build",
+		"check:changed": "node scripts/check-changed.ts",
+		"lint": "vp lint",
+		"fmt": "vp fmt",
+		"fmt:check": "vp fmt --check",
+		"typecheck": "vp run -r typecheck",
+		"test": "vp run -r test",
+		"build": "vp run -r build",
+		"api:deploy": "vp run --filter @arkie/api deploy",
+		"api:destroy": "vp run --filter @arkie/api destroy",
+		"api:plan": "vp run --filter @arkie/api plan",
+		"dev:destroy": "vp run --filter @arkie/api dev:destroy",
+		"db:generate": "vp run --filter @arkie/api db:generate",
+		"infra:bootstrap": "vp run --filter @arkie/api bootstrap",
+		"infra:bootstrap:plan": "vp run --filter @arkie/api bootstrap:plan",
+		"sync:repos": "node scripts/sync-repos.ts",
+		"prepare": "vp config --no-agent"
+	},
+	"devDependencies": {
+		"typescript": "^7.0.2",
+		"vite-plus": "catalog:"
+	},
+	"engines": {
+		"node": ">=24.11.1"
+	},
+	"packageManager": "pnpm@12.18.0"
+}

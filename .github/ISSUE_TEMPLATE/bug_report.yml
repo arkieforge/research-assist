@@ -1,0 +1,66 @@
+name: Bug report
+description: Something is broken, regressed, or unreliable.
+labels: [bug, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: Search existing issues first and keep this to one problem. Redact secrets, tokens and personal data.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [apps/web, apps/api, apps/marketing, "Infra (Alchemy, CI/CD, Doppler, dev tooling)", Not sure]
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where did it happen?
+      options: [Production, A PR preview, "Local dev (vp run dev)", Not sure]
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a new chat
+        2. Ask for a chart
+        3. Reload the page
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual
+    validations:
+      required: true
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      options: [Blocks use completely, Major degradation or frequent failure, Minor or occasional, Cosmetic]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Commit, deployment URL or time
+      description: Helps us match logs. For production, roughly when it happened (with timezone).
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs, errors or console output
+      render: shell
+  - type: upload
+    id: attachments
+    attributes:
+      label: Screenshots or recordings
+    validations:
+      required: false

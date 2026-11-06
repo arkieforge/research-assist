@@ -1,0 +1,53 @@
+{
+	"name": "@arkie/api",
+	"private": true,
+	"type": "module",
+	"imports": {
+		"#/*": "./src/*"
+	},
+	"exports": {
+		"./chat-name": "./src/lib/chat-name.ts",
+		"./types": "./src/types.ts"
+	},
+	"scripts": {
+		"dev": "alchemy dev --stage $(../../scripts/stage.sh dev)",
+		"dev:destroy": "alchemy destroy --stage $(../../scripts/stage.sh dev)",
+		"deploy": "alchemy deploy --stage $(../../scripts/stage.sh live)",
+		"destroy": "alchemy destroy --stage $(../../scripts/stage.sh live)",
+		"plan": "alchemy plan --stage $(../../scripts/stage.sh live)",
+		"alchemy": "alchemy",
+		"db:generate": "drizzle-kit generate --config drizzle.neon.config.ts && drizzle-kit generate --config drizzle.d1.config.ts",
+		"typecheck": "tsc --noEmit",
+		"test": "vp test run",
+		"bootstrap": "DOPPLER_ADMIN_TOKEN=\"${DOPPLER_ADMIN_TOKEN:-$(doppler configure get token --plain)}\" DOPPLER_TOKEN=\"${DOPPLER_TOKEN:-$(doppler configure get token --plain)}\" GITHUB_TOKEN=\"${GITHUB_TOKEN:-$(gh auth token)}\" alchemy deploy infra/bootstrap.run.ts --stage main",
+		"bootstrap:plan": "DOPPLER_ADMIN_TOKEN=\"${DOPPLER_ADMIN_TOKEN:-$(doppler configure get token --plain)}\" DOPPLER_TOKEN=\"${DOPPLER_TOKEN:-$(doppler configure get token --plain)}\" GITHUB_TOKEN=\"${GITHUB_TOKEN:-$(gh auth token)}\" alchemy plan infra/bootstrap.run.ts --stage main"
+	},
+	"dependencies": {
+		"@ai-sdk/anthropic": "^4.0.97",
+		"@clerk/backend": "^3.27.0",
+		"@cloudflare/ai-chat": "^0.12.2",
+		"agents": "^0.33.0",
+		"ai": "^7.0.163",
+		"drizzle-orm": "1.0.0-rc.5",
+		"pg": "^8.23.1",
+		"zod": "^4.6.7"
+	},
+	"devDependencies": {
+		"@alchemy.run/axiom": "2.0.0-beta.85",
+		"@alchemy.run/cloudflare": "2.0.0-beta.85",
+		"@alchemy.run/docker": "2.0.0-beta.85",
+		"@alchemy.run/doppler": "2.0.0-beta.85",
+		"@alchemy.run/github": "2.0.0-beta.85",
+		"@alchemy.run/neon": "2.0.0-beta.85",
+		"@alchemy.run/sql": "2.0.0-beta.85",
+		"@cloudflare/workers-types": "^5.20261106.1",
+		"@effect/platform-node": "^4.1.2",
+		"@types/node": "^24.0.0",
+		"@types/pg": "^8.15.6",
+		"alchemy": "2.0.0-beta.85",
+		"drizzle-kit": "1.0.0-rc.5",
+		"effect": "^4.1.2",
+		"typescript": "^7.0.2",
+		"vite-plus": "catalog:"
+	}
+}

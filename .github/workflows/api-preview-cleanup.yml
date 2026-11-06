@@ -1,0 +1,85 @@
+name: API preview cleanup
+
+# Destroys stage `pr-<n>` when `preview:api` is removed or the PR closes, and retries nightly for
+# closed PRs that still carry the label (the label is removed only after a successful teardown, so
+# the nightly list is exactly the failures). pull_request_target: the workflow and the Alchemy program
+# come from the default branch, so no PR code runs with these credentials.
+on:
+  pull_request_target:
+    types: [unlabeled, closed]
+  schedule:
+    - cron: "17 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  list:
+    name: Find stages to tear down
+    runs-on: ubuntu-latest
+    outputs:
+      prs: ${{ steps.find.outputs.prs }}
+    steps:
+      - id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          ACTION: ${{ github.event.action }}
+          LABEL: ${{ github.event.label.name }}
+          PR: ${{ github.event.pull_request.number }}
+          HAS_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'preview:api') }}
+        run: |
+          if [ "$EVENT" = pull_request_target ]; then
+            if { [ "$ACTION" = unlabeled ] && [ "$LABEL" = preview:api ]; } || { [ "$ACTION" = closed ] && [ "$HAS_LABEL" = true ]; }; then
+              echo "prs=[$PR]" >> "$GITHUB_OUTPUT"
+            else
+              echo "prs=[]" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            prs=$(gh pr list --repo "$GITHUB_REPOSITORY" --state closed --label preview:api --limit 100 --json number --jq '[.[].number]')
+            echo "prs=$prs" >> "$GITHUB_OUTPUT"
+          fi
+
+  destroy:
+    name: Destroy pr-${{ matrix.pr }}
+    needs: list
+    if: needs.list.outputs.prs != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        pr: ${{ fromJSON(needs.list.outputs.prs) }}
+    concurrency:
+      group: api-preview-${{ matrix.pr }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: preview-cleanup
+    env:
+      STAGE: pr-${{ matrix.pr }}
+      ALCHEMY_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: ./.github/actions/setup
+        with:
+          filter: "@arkie/api..."
+      - name: alchemy destroy --stage pr-<n>
+        working-directory: apps/api
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+        run: |
+          # Belt and braces with infra/stages.ts: only pr-<positive int> is ever destroyed here.
+          [[ "$STAGE" =~ ^pr-[1-9][0-9]*$ ]] || { echo "Refusing to destroy $STAGE" >&2; exit 1; }
+          vp exec alchemy destroy --stage "$STAGE" --yes --no-input
+      - name: Remove the label (marks teardown done)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ matrix.pr }}
+        run: gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label preview:api || true

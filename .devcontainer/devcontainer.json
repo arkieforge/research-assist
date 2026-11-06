@@ -1,0 +1,25 @@
+{
+	// Codespaces / Dev Containers: vp, Node 24 and Docker (for the API's local Postgres). Then `vp run dev`.
+	"name": "Arkie",
+	"image": "mcr.microsoft.com/devcontainers/javascript-node:24",
+	"features": {
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {}
+	},
+	"onCreateCommand": "bash .devcontainer/on-create.sh",
+	"forwardPorts": [3000, 4321, 8787],
+	"portsAttributes": {
+		"3000": { "label": "web" },
+		"4321": { "label": "marketing" },
+		"8787": { "label": "api" }
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"oxc.oxc-vscode",
+				"TypeScriptTeam.native-preview",
+				"bradlc.vscode-tailwindcss",
+				"astro-build.astro-vscode"
+			]
+		}
+	}
+}

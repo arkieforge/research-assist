@@ -1,0 +1,14 @@
+{
+	"name": "@arkie/scripts",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"test": "vp test run --dir .",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@types/node": "^24.0.0",
+		"typescript": "^7.0.2",
+		"vite-plus": "catalog:"
+	}
+}

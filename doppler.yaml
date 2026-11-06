@@ -1,0 +1,5 @@
+# `doppler setup` in this checkout picks these. scripts/dev.ts names arkie/dev explicitly, so worktrees
+# need no setup of their own. Configs: dev (local), stg (previews, live_* stages), prd (prod).
+setup:
+  - project: arkie
+    config: dev

@@ -1,0 +1,62 @@
+{
+	"$schema": "https://t3.codes/schema/t3.json",
+	"defaultThreadEnvMode": "worktree",
+	"worktreeSubmodules": "none",
+	"scripts": [
+		{
+			"name": "Setup",
+			"command": "node scripts/setup-worktree.ts",
+			"icon": "configure",
+			"runOnWorktreeCreate": true
+		},
+		{
+			"name": "Dev",
+			"command": "vp run dev",
+			"icon": "play",
+			"stopOnSettle": true
+		},
+		{
+			"name": "Dev: API only",
+			"command": "vp run dev --only api",
+			"icon": "play",
+			"stopOnSettle": true
+		},
+		{
+			"name": "Dev: share on tailnet",
+			"command": "vp run dev --share",
+			"icon": "play",
+			"stopOnSettle": true
+		},
+		{
+			"name": "Doctor",
+			"command": "vp run doctor",
+			"icon": "debug"
+		},
+		{
+			"name": "Check changed",
+			"command": "vp run check:changed",
+			"icon": "test"
+		},
+		{
+			"name": "Check",
+			"command": "vp run check",
+			"icon": "test"
+		},
+		{
+			"name": "Format",
+			"command": "vp check --fix",
+			"icon": "lint"
+		},
+		{
+			"name": "DB: generate migrations",
+			"command": "vp run db:generate",
+			"icon": "build"
+		},
+		{
+			"name": "Reset local data",
+			"command": "vp run dev:destroy --yes --no-input",
+			"icon": "debug",
+			"runOnSettle": true
+		}
+	]
+}

@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+/* Placeholder tokens until DESIGN.md exists. Dark, true black. */
+@theme {
+	--color-bg: #000;
+	--color-fg: #fff;
+	--color-muted: #8a8a8a;
+	--color-line: #222;
+}
+
+html {
+	color-scheme: dark;
+	background: var(--color-bg);
+	color: var(--color-fg);
+}

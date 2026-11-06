@@ -1,0 +1,12 @@
+---
+import Base from "../layouts/Base.astro";
+
+const appUrl = import.meta.env.PUBLIC_APP_URL ?? "http://localhost:3000";
+---
+
+<Base title="Arkie" description="Arkie is an AI chat that draws charts and works with your T3 Code threads.">
+	<main>
+		<h1>Arkie</h1>
+		<a href={appUrl}>Open the app</a>
+	</main>
+</Base>
