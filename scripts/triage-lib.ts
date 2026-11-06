@@ -1,5 +1,23 @@
-// Pure parts of scripts/triage.ts: the Workers Observability query for prod's warnings and errors,
-// and the one-line-per-event summary it puts in the triage context.
+// Pure parts of scripts/triage.ts: turning Axiom's tabular APL results (prod's datasets) and, as a
+// fallback, Workers Observability events into the one-line-per-row lists the triage context shows.
+
+/** The body of POST https://api.axiom.co/v1/datasets/_apl?format=tabular. */
+export type AxiomTabular = { tables?: Array<{ fields: Array<{ name: string }>; columns: unknown[][] }> };
+
+/** The first table's rows as `- name=value name=value`, values flattened and cut to 300 chars. */
+export function formatAxiomTable(result: AxiomTabular): string {
+	const table = result.tables?.[0];
+	const rows = table?.columns[0]?.length ?? 0;
+	if (!table || rows === 0) return "(none)";
+	return Array.from({ length: rows }, (_, i) => {
+		const cells = table.fields.map(({ name }, c) => {
+			const value = table.columns[c]?.[i];
+			const text = typeof value === "string" ? value : JSON.stringify(value ?? null);
+			return `${name}=${text.replace(/\s+/g, " ").slice(0, 300)}`;
+		});
+		return `- ${cells.join(" ")}`;
+	}).join("\n");
+}
 
 /** One event from POST /accounts/:id/workers/observability/telemetry/query (view "events"). */
 export type ObservabilityEvent = {

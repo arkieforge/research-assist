@@ -28,7 +28,7 @@ Check out that commit in a separate worktree (`git worktree add ../arkie-triage 
 
 Work from evidence, in rough order of value:
 
-- **API logs and traces** around the reported time. `vp run triage` puts prod's warnings and errors from the last 24 hours in its context file; local runs log to `.t3/logs/`. Prod: Axiom `arkie-logs` / `arkie-traces` (queries in observability.md) or `vp exec alchemy logs --stage prod` from `apps/api`. Previews: Cloudflare Workers Observability for the `pr-<n>` Worker.
+- **API logs and traces** around the reported time. `vp run triage` puts prod's last 24 hours from Axiom in its context file (failed invocations, `console.error`, requests by status); local runs log to `.t3/logs/`. For older or narrower windows, query Axiom `arkie-logs` / `arkie-traces` (observability.md) or `vp exec alchemy logs --stage prod` from `apps/api`. Previews: Cloudflare Workers Observability for the `pr-<n>` Worker.
 - **The request path** in [docs/internals/overview.md](../../docs/internals/overview.md): auth gate → ChatAgent → queue → Neon. Find which hop failed. A 401/403 is the auth gate (token expired, wrong owner); a missing chat in the sidebar with a working chat is the queue consumer or Neon.
 - **Web logs** in Vercel for SSR failures (`/` loader, `GET /chats`).
 - **Recent changes:** `git log` between the last good and the bad deploy, touching the failing hop.

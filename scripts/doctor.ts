@@ -138,6 +138,33 @@ add(
 			},
 );
 
+// Prod signals for `vp run triage`: bootstrap's read-only Axiom token, one cheap query to prove it.
+const axiomQuery = env.AXIOM_QUERY_TOKEN;
+const axiomStatus = axiomQuery
+	? await fetch("https://api.axiom.co/v1/datasets/_apl?format=tabular", {
+			method: "POST",
+			headers: { Authorization: `Bearer ${axiomQuery}`, "Content-Type": "application/json" },
+			body: JSON.stringify({ apl: "['arkie-logs'] | take 1" }),
+			signal: AbortSignal.timeout(5_000),
+		}).then(
+			(res) => res.status,
+			() => 0,
+		)
+	: undefined;
+add(
+	axiomStatus === 200
+		? { name: "triage", status: "ok", detail: "reads prod logs and traces from Axiom" }
+		: {
+				name: "triage",
+				status: "warn",
+				detail:
+					axiomStatus === undefined
+						? "no AXIOM_QUERY_TOKEN; prod signals fall back to Workers Observability (24h)"
+						: `Axiom query failed (${axiomStatus || "no connection"})`,
+				fix: "an admin runs vp run infra:bootstrap (it mints the token when AXIOM_TOKEN is in Doppler prd)",
+			},
+);
+
 // Ports for this checkout
 const portList = Object.entries(ports);
 const taken = (
