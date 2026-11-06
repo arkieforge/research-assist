@@ -25,8 +25,8 @@ export const Database = Effect.gen(function* () {
 		: yield* Neon.Project.ref("Database", { stage: "prod" });
 	const branch = yield* Neon.Branch("Branch", {
 		project,
+		// No `protected`: Neon's free plan has no protected branches. The project's retain policy keeps prod's data.
 		migrations: "./migrations/neon",
-		protected: isProdStage(stage),
 	});
 	// Hyperdrive pools the direct endpoint; with Hyperdrive bypassed (dev), Neon's own pooler.
 	return { origin: branch.origin, dev: branch.pooledOrigin, label: branch.branchId };
