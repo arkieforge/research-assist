@@ -61,7 +61,8 @@ export default Alchemy.Stack(
 		// Axiom export is opt-in: prod with AXIOM_TOKEN set in Doppler. Otherwise Cloudflare's own logs only.
 		const axiom = yield* optional("AXIOM_TOKEN");
 		const destinations = isProdStage(stage) && Option.isSome(axiom) ? yield* Observability : { logs: [], traces: [] };
-		const api = yield* Api(destinations);
+		// The heartbeat feeds a monitor, so it only runs where the monitors do.
+		const api = yield* Api(destinations, destinations.logs.length > 0 ? ["*/5 * * * *"] : []);
 		const { label } = yield* Database;
 
 		yield* Cloudflare.Queues.Consumer("ChatEventsConsumer", {

@@ -5,6 +5,7 @@ import { chats, neon } from "#/db/neon.ts";
 import { userIdOf } from "#/lib/auth.ts";
 import { ownerOf } from "#/lib/chat-name.ts";
 import type { ChatEvent } from "#/lib/events.ts";
+import { emit } from "#/lib/telemetry.ts";
 import type { ChatSummary } from "#/types.ts";
 
 // The API Worker entry (alchemy.run.ts `main`). Durable Object classes must be exported from here.
@@ -91,5 +92,16 @@ export default {
 				set: { title: sql`excluded.title`, updatedAt: sql`excluded.updated_at` },
 				setWhere: sql`${chats.updatedAt} < excluded.updated_at`,
 			});
+		emit({
+			event: "chat.index",
+			rows: rows.length,
+			lagMs: Date.now() - Math.min(...rows.map((r) => r.updatedAt.getTime())),
+		});
+	},
+
+	// Prod's cron (infra/api.ts): proves to the "Arkie heartbeat missing" monitor that the Worker runs and
+	// its logs still reach Axiom, which silence from an idle app can't.
+	async scheduled() {
+		emit({ event: "heartbeat" });
 	},
 } satisfies ExportedHandler<Env, ChatEvent>;

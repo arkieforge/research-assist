@@ -10,7 +10,14 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { devStage, preferredPorts, root, run, succeeds } from "./lib/local.ts";
-import { errorLogs, failedInvocations, statusCounts } from "../apps/api/infra/axiom.ts";
+import {
+	chatTurns,
+	errorLogs,
+	failedInvocations,
+	heartbeats,
+	indexWrites,
+	statusCounts,
+} from "../apps/api/infra/axiom.ts";
 import {
 	type AxiomTabular,
 	formatAxiomTable,
@@ -67,16 +74,33 @@ async function axiom(token: string, apl: string): Promise<string> {
 async function prodSignals(): Promise<string> {
 	const query = secret("AXIOM_QUERY_TOKEN");
 	if (query) {
-		const [status, failures, logs] = await Promise.all([
+		const [status, failures, logs, turns, failedTurns, heartbeat, index] = await Promise.all([
 			axiom(query, `${statusCounts} | order by status asc`),
 			axiom(query, `${failedInvocations} | project _time, outcome, status, trace_id | order by _time desc | take 20`),
 			axiom(query, `${errorLogs} | project _time, severity_text, body, trace_id | order by _time desc | take 20`),
+			axiom(
+				query,
+				`${chatTurns} | summarize turns = count(), errors = countif(outcome == "error"), p50FirstTokenMs = percentile(firstTokenMs, 50), p95FirstTokenMs = percentile(firstTokenMs, 95) by model`,
+			),
+			axiom(
+				query,
+				`${chatTurns} | where outcome != "completed" | project _time, outcome, model, error, chat | order by _time desc | take 20`,
+			),
+			axiom(query, `${heartbeats} | summarize heartbeats = count(), lastHeartbeat = max(_time)`),
+			axiom(
+				query,
+				`${indexWrites} | summarize writes = count(), p95LagMs = percentile(lagMs, 95), maxLagMs = max(lagMs)`,
+			),
 		]);
 		return [
 			"Source: Axiom `arkie-logs` / `arkie-traces` (queries in apps/api/infra/axiom.ts). A `trace_id` finds the request's log line and path.",
 			`\n### Requests by status\n\n${status}`,
 			`\n### Failed invocations (thrown, out of resources, or 5xx)\n\n${failures}`,
 			`\n### console.error / console.warn\n\n${logs}`,
+			`\n### Chat turns by model\n\n${turns}`,
+			`\n### Chat turns that errored or were aborted\n\n${failedTurns}`,
+			`\n### Heartbeat (every 5 minutes)\n\n${heartbeat}`,
+			`\n### Chat index writes\n\n${index}`,
 		].join("\n");
 	}
 	return `Source: Workers Observability (no AXIOM_QUERY_TOKEN in Doppler arkie/stg).\n\n${await workersObservability()}`;
