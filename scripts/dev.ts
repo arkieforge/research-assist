@@ -6,19 +6,23 @@
 //   4. picks ports for this checkout (main checkout: 8787/3000/4321/54329; worktrees: a stable offset)
 //   5. runs api (alchemy dev), web (vite) and marketing (astro) with prefixed output, and stops all
 //      three on Ctrl-C by the process groups it started.
+//   6. also writes each app's output, timestamped and without colors, to .t3/logs/<app>.log
+//      (replaced on every start), so an agent that didn't start this process can read it.
 //
 // Flags:
 //   --only api,web   run a subset
 //   --share          also serve the apps over this machine's tailnet (HTTPS), to test from a phone
 import { type ChildProcess, execFileSync, spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { createWriteStream, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { stripVTControlCharacters } from "node:util";
 import { missingSecrets, type Ports } from "./dev-lib.ts";
 import { devEnv, dopplerDev, freePorts, localEnv, root, run, succeeds } from "./lib/local.ts";
 
 const APPS = { api: "@arkie/api", web: "@arkie/web", marketing: "@arkie/marketing" } as const;
 type App = keyof typeof APPS;
 const SHARE_OFFSET = 10_000;
+const LOGS = join(root, ".t3", "logs");
 
 const log = (message: string) => process.stdout.write(`[dev] ${message}\n`);
 const fail = (message: string): never => {
@@ -77,13 +81,18 @@ function startApp(app: App, env: NodeJS.ProcessEnv): ChildProcess {
 	// detached: the child leads its own process group, so stopping it also stops alchemy/vite/workerd under it.
 	const child = spawn("vp", ["run", "--filter", APPS[app], "dev"], { cwd: root, env, detached: true, stdio: "pipe" });
 	const tag = `[${app}]`.padEnd(12);
+	mkdirSync(LOGS, { recursive: true });
+	const file = createWriteStream(join(LOGS, `${app}.log`));
 	for (const stream of [child.stdout, child.stderr]) {
 		let buffered = "";
 		stream?.setEncoding("utf8").on("data", (chunk: string) => {
 			buffered += chunk;
 			const lines = buffered.split("\n");
 			buffered = lines.pop() ?? "";
-			for (const line of lines) process.stdout.write(`${tag} ${line}\n`);
+			for (const line of lines) {
+				process.stdout.write(`${tag} ${line}\n`);
+				file.write(`${new Date().toISOString()} ${stripVTControlCharacters(line)}\n`);
+			}
 		});
 	}
 	return child;

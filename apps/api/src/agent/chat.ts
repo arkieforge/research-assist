@@ -1,18 +1,12 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { AIChatAgent, type ChatResponseResult } from "@cloudflare/ai-chat";
 import { convertToModelMessages, isStepCount, streamText, tool } from "ai";
-import { z } from "zod";
 import { artifacts, d1 } from "#/db/d1.ts";
 import { ownerOf } from "#/lib/chat-name.ts";
 import type { ChatEvent } from "#/lib/events.ts";
 import { t3Allowed } from "#/lib/t3.ts";
+import { MODEL, renderHtmlSpec, SYSTEM } from "./prompt.ts";
 import { replayModel } from "./replay-model.ts";
-
-const MODEL = "claude-sonnet-5-5";
-
-const SYSTEM = `You are Arkie, a concise assistant.
-When a chart, table, diagram or comparison would answer better than prose, call render_html with one
-self-contained HTML page (inline CSS and JS, no external requests except cdnjs.cloudflare.com).`;
 
 /**
  * One chat. A Durable Object per conversation: AIChatAgent persists the messages in its SQLite,
@@ -67,11 +61,7 @@ export class ChatAgent extends AIChatAgent<Env> {
 	/** Stores a model-written HTML page in R2 (body) and D1 (index); the web app loads it from /artifacts/:id. */
 	private renderHtml() {
 		return tool({
-			description: "Show the user a self-contained HTML page: a chart, table, diagram or comparison.",
-			inputSchema: z.object({
-				title: z.string().min(1).max(120),
-				html: z.string().min(1).max(1_000_000),
-			}),
+			...renderHtmlSpec,
 			execute: async ({ title, html }) => {
 				const userId = ownerOf(this.name);
 				if (!userId) throw new Error("chat has no owner");

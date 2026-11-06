@@ -1,0 +1,41 @@
+# CodeRabbit (free for public repos; install the GitHub app on arkieforge/research-assist to activate).
+# Reviews follow AGENTS.md; these add what to look for per path. https://docs.coderabbit.ai/reference/configuration
+language: en-US
+reviews:
+  profile: chill
+  high_level_summary: false
+  poem: false
+  review_status: false
+  collapse_walkthrough: true
+  auto_review:
+    enabled: true
+    drafts: false
+  path_filters:
+    - "!pnpm-lock.yaml"
+    - "!apps/api/migrations/**/snapshot.json"
+    - "!**/routeTree.gen.ts"
+  path_instructions:
+    - path: "**/*.test.ts"
+      instructions: >-
+        Flag tests that only restate types, copy text, callback wiring or smoke runs, and tests that
+        repeat a case already covered at a lower layer. A bug fix needs a test that fails without the fix.
+        No sleeps, timeouts or polling to make a test pass.
+    - path: "apps/api/infra/**"
+      instructions: >-
+        Every change must work on dev_*, pr-*/live_* and prod stages (apps/api/infra/stages.ts). New
+        secrets need Doppler dev/stg/prd and .env.example. Flag anything that would make a non-prod stage
+        touch prod data, or a resource with no way to remove it.
+    - path: "apps/api/src/**"
+      instructions: >-
+        A chat belongs to its user: any new route to a chat or artifact must check ownership before a
+        Durable Object wakes (onlyOwner / ownerOf). Auth is bearer tokens only, never cookies.
+    - path: "apps/web/src/**"
+      instructions: >-
+        Web never touches Cloudflare bindings; it calls the API through src/lib/api.ts with a bearer token.
+        Effects are only for syncing with something outside React. No continuously repainting animations.
+    - path: ".github/workflows/**"
+      instructions: >-
+        Untrusted event fields (titles, bodies, head refs) must reach run steps only through env. Jobs
+        that use the production or preview environments must stay gated as bootstrap.run.ts sets them.
+chat:
+  auto_reply: true

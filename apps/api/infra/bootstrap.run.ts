@@ -1,3 +1,4 @@
+import * as Axiom from "@alchemy.run/axiom";
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Doppler from "@alchemy.run/doppler";
 import * as GitHub from "@alchemy.run/github";
@@ -7,6 +8,7 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
+import { LOGS, TRACES } from "./axiom.ts";
 import { optional } from "./config.ts";
 import { DopplerProviders, DopplerSecret, DopplerServiceToken, dopplerSecrets } from "./doppler.ts";
 import { VercelEnv, VercelProject, VercelProviders } from "./vercel.ts";
@@ -19,6 +21,7 @@ import { VercelEnv, VercelProject, VercelProviders } from "./vercel.ts";
 //   GitHub      production/preview/preview-cleanup environments holding those tokens, the labels the
 //               templates and workflows use, and the main-branch ruleset
 //   Vercel      the arkie-web and arkie-marketing projects, web's production and preview env (when VERCEL_TOKEN is set)
+//   Axiom       a read-only query token for prod's datasets, in Doppler dev and stg (when AXIOM_TOKEN is set)
 //
 // Contributors never run this; it only turns admin credentials into the narrow ones everyone else uses.
 
@@ -57,6 +60,11 @@ const LABELS: Array<{ name: string; color: string; description: string }> = [
 	{ name: "area:web", color: "0e8a16", description: "apps/web (TanStack Start on Vercel)." },
 	{ name: "area:marketing", color: "0e8a16", description: "apps/marketing (Astro on Vercel)." },
 	{ name: "area:infra", color: "0e8a16", description: "Alchemy stacks, CI/CD, Doppler, dev tooling." },
+	{
+		name: "agent-context-increase",
+		color: "d4c5f9",
+		description: "Accepts growth in AGENTS.md, skills or the triage playbook (Agent context check).",
+	},
 ];
 
 /** Web's env vars: Production reads them from Doppler arkie/prd, Preview from arkie/stg. Missing ones are skipped. */
@@ -71,7 +79,13 @@ const WEB_ENV = [
 export default Alchemy.Stack(
 	"ArkieBootstrap",
 	{
-		providers: Layer.mergeAll(Cloudflare.providers(), GitHub.providers(), DopplerProviders(), VercelProviders()),
+		providers: Layer.mergeAll(
+			Axiom.providers(),
+			Cloudflare.providers(),
+			GitHub.providers(),
+			DopplerProviders(),
+			VercelProviders(),
+		),
 		state: Cloudflare.state(),
 		// Doppler prd supplies the Cloudflare credentials (state store) and VERCEL_TOKEN; web's env is read
 		// per config with DOPPLER_ADMIN_TOKEN. The admin's shell supplies that token and GITHUB_TOKEN.
@@ -207,6 +221,24 @@ export default Alchemy.Stack(
 						target: [target],
 					});
 				}
+			}
+		}
+
+		// 5. Axiom (when AXIOM_TOKEN is in prd): a read-only query token for prod's datasets, which
+		// `vp run triage` and `vp run doctor` read from dev/stg so nothing local holds the admin token.
+		if (Option.isSome(yield* optional("AXIOM_TOKEN"))) {
+			const query = yield* Axiom.ApiToken("TriageQuery", {
+				name: "arkie-triage-query",
+				description: "Read-only queries for vp run triage and doctor",
+				datasetCapabilities: { [LOGS]: { query: ["read"] }, [TRACES]: { query: ["read"] } },
+			});
+			for (const config of ["dev", "stg"] as const) {
+				yield* DopplerSecret(`AxiomQuery-${config}`, {
+					project: PROJECT,
+					config,
+					name: "AXIOM_QUERY_TOKEN",
+					value: query.token,
+				});
 			}
 		}
 
