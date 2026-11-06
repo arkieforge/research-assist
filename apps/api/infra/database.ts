@@ -34,5 +34,6 @@ export const Database = Effect.gen(function* () {
 
 export const Hyperdrive = Effect.gen(function* () {
 	const { origin, dev } = yield* Database;
-	return yield* Cloudflare.Hyperdrive.Connection("Hyperdrive", { origin, dev });
+	// No query cache: Hyperdrive would serve GET /chats up to a minute stale, hiding a chat just started.
+	return yield* Cloudflare.Hyperdrive.Connection("Hyperdrive", { origin, dev, caching: { disabled: true } });
 });

@@ -82,6 +82,8 @@ export const LocalPostgres = (port: number, migrationsDir: string) =>
 			database: DATABASE,
 			user: USER,
 			password: Redacted.make(PASSWORD),
+			// The container has no TLS, and node-postgres treats Alchemy's default "prefer" as "require".
+			sslmode: "disable",
 		} as const;
 		return { origin, dev: origin, label: `local postgres on :${port}` };
 	});
