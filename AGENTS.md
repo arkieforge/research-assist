@@ -47,12 +47,15 @@ The most common defect is a change that works where you tested it and is missing
 - Local Postgres data lives in a Docker volume per stage and survives restarts. `vp run dev:destroy` removes it (and every local resource of the stage). Do it before deleting a worktree.
 - Real model turns cost money. Without `ARKIE_ANTHROPIC_API_KEY` the chat uses the free **Replay (dev)** model: it streams, and calls `render_html` when you ask for a chart, so the socket, tools, R2/D1 and the queue all run. Use a real key only when the change depends on model output.
 - Testing on a phone: `vp run dev --share` (tailnet HTTPS). Never hand-wire `tailscale serve`.
+- Logs: `vp run dev` also writes each app's output, timestamped, to `.t3/logs/<app>.log` (replaced on each start). Read them instead of asking for terminal output.
+- An empty sidebar is a bad test. With dev running, `vp run seed` drives three chats through the real path as `seed+clerk_test@example.com` (sign in with code `424242`).
 
 ## Verifying
 
 - Before you push: `vp run check:changed` (CI's gates for what you touched). `vp run check` runs everything; CI always does. Don't rerun repo-wide checks while iterating.
 - Setup or dev misbehaving: `vp run doctor` first. It names the problem and the fix.
 - While iterating: `vp run --filter <app> test` or `vp test run <file>`.
+- Changing what the chat model reads (`apps/api/src/agent/prompt.ts`): run [the render-html eval](apps/api/evals/render-html/README.md) before and after.
 - Test behavior that can break: auth and ownership checks, the queue consumer's upsert, stage selection in the stack, migrations, parsing of external formats, the logic a bug fix changed. Leave out tests for what types guarantee, copy text, smoke runs and callback wiring. Extend an existing test before adding one. Test at the lowest layer that fails on `main`.
 - Bug fixes: logic, data and protocol bugs get a failing test first, then the fix. Purely visual bugs get before/after screenshots and no test.
 - User-visible web changes get one pass in a real browser (the `test-arkie-app` skill): T3's preview browser against `vp run dev`, with screenshots in the PR.
@@ -68,7 +71,7 @@ The most common defect is a change that works where you tested it and is missing
 
 ## Documentation
 
-Most changes need no doc change; agents can read the code.
+Most changes need no doc change; agents can read the code. Every session loads this file, the skills and the triage playbook, so CI's Agent context check fails a PR that grows them unless a maintainer adds `agent-context-increase`.
 
 - `docs/internals/` holds decisions and their reasons, constraints that span apps, and traps that are hard to discover from source. Before adding a paragraph, ask what a maintainer would get wrong without it.
 - `docs/operations/` holds runbooks: development, deploys, secrets, observability and incidents.

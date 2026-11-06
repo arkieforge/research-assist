@@ -28,18 +28,30 @@ export default defineConfig({
 	},
 	lint: {
 		ignorePatterns: GENERATED,
-		plugins: ["eslint", "oxc", "react", "unicorn", "typescript"],
-		jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
+		plugins: ["eslint", "oxc", "react", "unicorn", "typescript", "jest"],
+		jsPlugins: [
+			{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" },
+			{ name: "arkie", specifier: "./scripts/lint/arkie-plugin.ts" },
+		],
 		categories: { correctness: "error", suspicious: "warn", perf: "warn" },
 		rules: {
 			"vite-plus/prefer-vite-plus-imports": "error",
 			"typescript/no-explicit-any": "error",
 			"oxc/no-accumulating-spread": "error",
+			"arkie/no-kill-by-pattern": "error",
+			"arkie/no-prod-stage": "error",
+			// A focused or skipped test silently drops the rest of the suite from CI.
+			"jest/no-focused-tests": "error",
+			"jest/no-disabled-tests": "error",
 			// React 19's automatic JSX runtime needs no React import.
 			"react/react-in-jsx-scope": "off",
 			// Third-party fields such as posthog.__loaded.
 			"eslint/no-underscore-dangle": "off",
 		},
+		// The rules' own source and tests spell out what they forbid.
+		overrides: [
+			{ files: ["scripts/lint/**"], rules: { "arkie/no-kill-by-pattern": "off", "arkie/no-prod-stage": "off" } },
+		],
 		options: { typeAware: true, typeCheck: true },
 	},
 	staged: {
