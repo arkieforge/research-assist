@@ -47,4 +47,4 @@ Install Doppler's Vercel integration and sync:
 ## Rules
 
 - Never print, log or paste a secret value, including in PRs, issues and agent transcripts. `alchemy … --log-level debug` lists names only.
-- Rotate by changing the value in Doppler and redeploying the stage (`workflow_dispatch` on Deploy API for prod). Alchemy rebinds a Worker when a value it reads changes.
+- Rotate by changing the value in Doppler and redeploying the stage (`workflow_dispatch` on CI/CD for prod). Alchemy rebinds a Worker when a value it reads changes.

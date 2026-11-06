@@ -1,9 +1,19 @@
-name: CI
+name: CI/CD
 
+# One graph from change to production: every check runs in parallel, `CI` gates them (it is the one
+# required check on main), and a push to main then deploys the API and smoke-tests it. Web and
+# marketing deploy through Vercel's Git integration. PR previews of the API are api-preview.yml.
 on:
   pull_request:
   push:
     branches: [main]
+  # Redeploys main, e.g. after a Doppler change. Alchemy redeploys what a changed value reaches.
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Redeploy every resource, including ones with no detected changes.
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -12,8 +22,6 @@ concurrency:
   group: ci-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# One job per gate so failures read at a glance and run side by side. Branch protection requires only
-# `CI`, which passes when every gate passed; add new jobs to its `needs`.
 jobs:
   lint:
     name: Format and lint
@@ -25,32 +33,44 @@ jobs:
       - run: vp check
 
   typecheck:
-    name: Typecheck
+    name: Typecheck ${{ matrix.package }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [api, web, scripts]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
-      - run: vp run -r typecheck
+      - run: vp run --filter "@arkie/${{ matrix.package }}" typecheck
 
   test:
-    name: Test
+    name: Test ${{ matrix.package }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [api, scripts]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
-      - run: vp run -r test
+      - run: vp run --filter "@arkie/${{ matrix.package }}" test
 
   build:
-    name: Build web and marketing
+    name: Build ${{ matrix.package }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [web, marketing]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
       # NITRO_PRESET matches what Vercel builds, so a Vercel-only build break fails here first.
-      - run: vp run -r build
+      - run: vp run --filter "@arkie/${{ matrix.package }}" build
         env:
           NITRO_PRESET: vercel
 
@@ -65,3 +85,70 @@ jobs:
       - env:
           RESULTS: ${{ toJSON(needs) }}
         run: echo "$RESULTS" | jq -e 'all(.[]; .result == "success")'
+
+  deploy:
+    name: Deploy API (prod)
+    needs: ci
+    # A run from another branch would deploy that branch to production.
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Holds the prd Doppler token; deploys from main only, after a reviewer approves.
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+    concurrency: { group: api-production, cancel-in-progress: false }
+    permissions:
+      contents: read
+      statuses: write
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+    env:
+      ALCHEMY_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+        with:
+          filter: "@arkie/api..."
+      - id: deploy
+        name: alchemy deploy --stage prod
+        working-directory: apps/api
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+          FORCE: ${{ inputs.force && '--force' || '' }}
+        run: |
+          vp exec alchemy deploy --stage prod --yes --no-input ${FORCE:+"$FORCE"} | tee "$RUNNER_TEMP/deploy.log"
+          url=$(grep -oE "https://[a-z0-9.-]+\.workers\.dev" "$RUNNER_TEMP/deploy.log" | tail -1)
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+      - name: Commit status
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: "success",
+              context: "API deploy / prod",
+              description: "API prod deploy completed.",
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
+
+  smoke:
+    name: Smoke test API (prod)
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # The live Worker answers, and its auth gate rejects a request with no token. Retries cover a
+      # fresh workers.dev hostname that takes a few seconds to resolve.
+      - env:
+          URL: ${{ needs.deploy.outputs.url }}
+        run: |
+          [ -n "$URL" ] || { echo "No API URL in the deploy log" >&2; exit 1; }
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$URL/chats" || true)
+            [ "$code" = 401 ] && { echo "GET /chats -> 401 as expected"; exit 0; }
+            echo "attempt $i: $code"; sleep 5
+          done
+          exit 1
