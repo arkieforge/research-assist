@@ -106,7 +106,7 @@ The browser opens a WebSocket to `wss://<api>/agents/chat-agent/<userId>.<chatId
 ## Pitfalls
 
 - Plain `vite build` in `apps/web` targets Node; CI and Vercel set `NITRO_PRESET=vercel`. Don't add `@cloudflare/vite-plugin` anywhere: the API is a plain Worker built by Alchemy.
-- Clerk's `verifyToken` throws on malformed tokens; `userIdOf` maps that to "no user" (401/403, not 500). TypeScript 7 collapses Clerk's `JwtPayload` to `{}`, so `auth.ts` reads `sub` defensively.
+- `@clerk/backend`'s `verifyToken` resolves to the JWT payload itself (not `{ data }`) and throws on a bad token; `userIdOf` maps a throw to "no user" (401/403, not 500). TypeScript 7 collapses Clerk's `JwtPayload` to `{}`, so `auth.ts` reads `sub` defensively.
 - Clerk session tokens live about a minute: the chat asks for a fresh one per connect and per history load.
 - `Access-Control-Allow-Headers: *` does not cover `Authorization`; it is listed by name.
 - Postgres rejects an upsert batch touching one row twice; the queue consumer dedupes by chat id first.
