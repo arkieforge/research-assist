@@ -11,15 +11,17 @@ import { ArtifactIndex, Artifacts, ChatEvents } from "./resources.ts";
 /**
  * The API Worker (src/worker.ts): ChatAgent Durable Objects, the JSON routes the web app calls,
  * and the ChatEvents consumer. The web app (apps/web, on Vercel) reaches it cross-origin with a
- * Clerk token. `destinations` are Workers Observability export slugs (Axiom, prod only).
+ * Clerk token. `destinations` are Workers Observability export slugs and `crons` the heartbeat
+ * schedule (both Axiom, prod only).
  */
-export const Api = (destinations: { logs: Input<string>[]; traces: Input<string>[] }) =>
+export const Api = (destinations: { logs: Input<string>[]; traces: Input<string>[] }, crons: string[] = []) =>
 	Cloudflare.Worker(
 		"Api",
 		Effect.gen(function* () {
 			const config = yield* AppConfig;
 			return {
 				main: "./src/worker.ts",
+				crons,
 				// scripts/dev.ts picks API_PORT per worktree and hands the same URL to apps/web.
 				dev: { port: DEV_API_PORT },
 				observability: {

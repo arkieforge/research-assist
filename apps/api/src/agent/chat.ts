@@ -5,6 +5,7 @@ import { artifacts, d1 } from "#/db/d1.ts";
 import { ownerOf } from "#/lib/chat-name.ts";
 import type { ChatEvent } from "#/lib/events.ts";
 import { t3Allowed } from "#/lib/t3.ts";
+import { emit, trackTurn } from "#/lib/telemetry.ts";
 import { MODEL, renderHtmlSpec, SYSTEM } from "./prompt.ts";
 import { replayModel } from "./replay-model.ts";
 
@@ -22,12 +23,18 @@ export class ChatAgent extends AIChatAgent<Env> {
 		if (t3) await this.connectT3();
 		// No key set (any stage): the scripted Replay model, which tells the user how to configure one.
 		const key = this.env.ANTHROPIC_API_KEY;
+		const turn = trackTurn(this.name, key ? MODEL : "replay");
 		const result = streamText({
 			model: key ? createAnthropic({ apiKey: key })(MODEL) : replayModel(),
 			system: SYSTEM,
 			messages: await convertToModelMessages(this.messages),
 			tools: { ...(t3 ? this.mcp.getAITools() : {}), render_html: this.renderHtml() },
 			stopWhen: isStepCount(8),
+			onChunk: ({ chunk }) => turn.chunk(chunk),
+			onFinish: ({ totalUsage }) =>
+				emit(turn.end("completed", { inputTokens: totalUsage.inputTokens, outputTokens: totalUsage.outputTokens })),
+			onError: ({ error }) => emit(turn.end("error", { error: String(error).slice(0, 500) })),
+			onAbort: () => emit(turn.end("aborted")),
 		});
 		return result.toUIMessageStreamResponse();
 	}
