@@ -191,7 +191,10 @@ export default Alchemy.Stack(
 				repo,
 			}).pipe(RemovalPolicy.retain());
 			for (const [key, secret] of WEB_PRODUCTION_ENV) {
-				const value = yield* optional(key);
+				const own = yield* optional(key);
+				// The browser bundle reads the publishable key as VITE_; Doppler may hold it only unprefixed.
+				const value =
+					key === "VITE_CLERK_PUBLISHABLE_KEY" && Option.isNone(own) ? yield* optional("CLERK_PUBLISHABLE_KEY") : own;
 				if (Option.isNone(value)) continue;
 				yield* VercelEnv(`WebEnv-${key}`, {
 					project: "arkie-web",
@@ -199,6 +202,13 @@ export default Alchemy.Stack(
 					value: secret ? Redacted.make(value.value) : value.value,
 					target: ["production"],
 				});
+			}
+		}
+
+		if (Option.isSome(yield* optional("VERCEL_TOKEN"))) {
+			const urls = { PUBLIC_APP_URL: "https://arkie-web.vercel.app", SITE_URL: "https://arkie-marketing.vercel.app" };
+			for (const [key, value] of Object.entries(urls)) {
+				yield* VercelEnv(`MarketingEnv-${key}`, { project: "arkie-marketing", key, value, target: ["production"] });
 			}
 		}
 
