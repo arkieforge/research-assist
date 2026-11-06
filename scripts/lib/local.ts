@@ -3,7 +3,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { createServer } from "node:net";
-import { basename, join } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { parseEnv } from "node:util";
 import { devEnv, type Ports, portOffset, portsAt } from "../dev-lib.ts";
 
@@ -43,7 +43,21 @@ export function dopplerDev(): DopplerResult {
 	if (process.env.DOPPLER_ENVIRONMENT) return { status: "inside-run" };
 	if (!succeeds("doppler", ["--version"])) return { status: "no-cli" };
 	try {
-		const json = run("doppler", ["secrets", "download", "-p", "arkie", "-c", "dev", "--no-file", "--format", "json"]);
+		// Use the main checkout's Doppler login: worktrees can live anywhere (T3 puts them under ~/.t3).
+		const scope = dirname(resolve(root, run("git", ["rev-parse", "--git-common-dir"]).trim()));
+		const json = run("doppler", [
+			"secrets",
+			"download",
+			"-p",
+			"arkie",
+			"-c",
+			"dev",
+			"--scope",
+			scope,
+			"--no-file",
+			"--format",
+			"json",
+		]);
 		// Drop Doppler's own DOPPLER_* metadata; only the project's secrets go to the apps.
 		const secrets = Object.fromEntries(
 			Object.entries(JSON.parse(json) as Record<string, string>).filter(([key]) => !key.startsWith("DOPPLER_")),
