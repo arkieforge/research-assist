@@ -34,7 +34,7 @@ Read Alchemy's and Effect's own source when the docs fall short: `vp run sync:re
 
 | Stage                    | How                                   | Notes                                                                    |
 | ------------------------ | ------------------------------------- | ------------------------------------------------------------------------ |
-| `prod`                   | push to `main` (Deploy API workflow)  | owns the Neon project, Axiom, incident.io, Vercel production env         |
+| `prod`                   | push to `main` (CI/CD workflow)       | owns the Neon project, Axiom, incident.io, Vercel production env         |
 | `pr-<n>`                 | `preview:api` label on a PR           | Neon branch of prod's project; points that PR's Vercel preview at itself |
 | `live_<user>_<checkout>` | `vp run api:deploy` from your machine | your own cloud copy; needs Doppler `stg` access                          |
 

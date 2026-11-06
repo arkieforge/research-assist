@@ -37,7 +37,7 @@ Local dev logs are the `[api]` lines of `vp run dev`.
 An incident.io alert or a user report of broad breakage is an incident. In order:
 
 1. **Acknowledge** in incident.io and declare an incident there if users are affected. Label any GitHub issue `incident`.
-2. **Look at the last change first.** `git log origin/main -5`, the latest **Deploy API** run, the latest Vercel deployment. Most incidents follow a deploy.
+2. **Look at the last change first.** `git log origin/main -5`, the latest **CI/CD** run on `main`, the latest Vercel deployment. Most incidents follow a deploy.
 3. **Mitigate before you diagnose.** If a deploy is the likely cause, roll back ([deploy.md](./deploy.md#rollback)), then confirm the error rate falls in Axiom.
 4. **Diagnose** with the [triage playbook](../../.github/triage/PLAYBOOK.md): logs, traces, the chat or artifact the user hit, Neon.
 5. **Fix forward** with a PR that has a failing test for the cause, then revert the rollback by shipping the fix.

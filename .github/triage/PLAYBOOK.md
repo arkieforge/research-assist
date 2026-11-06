@@ -20,7 +20,7 @@ Establish, don't guess:
 
 - **Surface:** web app (Vercel), marketing site (Vercel), or the API (Cloudflare). Errors in the chat itself are almost always the API.
 - **Stage:** `prod`, a `pr-<n>` preview, or someone's local `vp run dev`.
-- **Version:** the deployed commit at the time. Prod API: the latest successful **Deploy API** run before that time (`gh run list --workflow deploy-api.yml`). Web: the Vercel deployment active then.
+- **Version:** the deployed commit at the time. Prod API: the latest successful **CI/CD** run on `main` with a green _Deploy API (prod)_ job before that time (`gh run list --workflow ci.yml --branch main`). Web: the Vercel deployment active then.
 
 Check out that commit in a separate worktree (`git worktree add ../arkie-triage <sha>`) so file and line references match what ran. Remove it when you're done.
 

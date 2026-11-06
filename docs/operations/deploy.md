@@ -2,11 +2,11 @@
 
 ## What deploys where
 
-| App              | Platform             | How                                                              |
-| ---------------- | -------------------- | ---------------------------------------------------------------- |
-| `apps/api`       | Cloudflare (Alchemy) | `.github/workflows/deploy-api.yml` on every push to `main`       |
-| `apps/web`       | Vercel               | Vercel Git integration: production from `main`, a preview per PR |
-| `apps/marketing` | Vercel               | same                                                             |
+| App              | Platform             | How                                                                                     |
+| ---------------- | -------------------- | --------------------------------------------------------------------------------------- |
+| `apps/api`       | Cloudflare (Alchemy) | `.github/workflows/ci.yml`: checks, then deploy and smoke test, on every push to `main` |
+| `apps/web`       | Vercel               | Vercel Git integration: production from `main`, a preview per PR                        |
+| `apps/marketing` | Vercel               | same                                                                                    |
 
 ## API stages
 
@@ -25,7 +25,7 @@ The Cloudflare state store (a small Worker + Durable Object Alchemy deploys into
 
 1. An admin runs `vp run infra:bootstrap` ([bootstrap.md](./bootstrap.md)): the deploy token goes into Doppler, the GitHub environments get their Doppler tokens, the Vercel projects exist.
 2. Add the rest of [secrets.md](./secrets.md) to Doppler `prd` and `stg` (Neon, Clerk, model key, Axiom).
-3. Push to `main` (or run **Deploy API** manually). The job deploys `--stage prod`, sets the commit status `API deploy / prod`, and (with `VERCEL_TOKEN` in Doppler) points the web project's production `VITE_API_URL` at the Worker.
+3. Push to `main` (or run **CI/CD** manually). After the checks pass and a reviewer approves the `production` environment, the _Deploy API (prod)_ job deploys `--stage prod`, sets the commit status `API deploy / prod`, and (with `VERCEL_TOKEN` in Doppler) points the web project's production `VITE_API_URL` at the Worker. _Smoke test API (prod)_ then checks the live Worker answers and its auth gate rejects an unauthenticated request.
 
 ## PR previews
 
